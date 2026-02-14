@@ -248,13 +248,15 @@ def main():
         # Re-train models on uploaded data
         with st.spinner("Training models on uploaded data..."):
             results, scaler, X_test, y_test = retrain_models(uploaded_df)
-        source_label = "Uploaded Dataset"
+        data_loaded = True
     else:
-        # Use pre-trained models
         results = None
-        source_label = "Default Heart Disease Dataset"
+        data_loaded = False
 
-    st.info(f"📁 Data source: **{source_label}**")
+    if data_loaded:
+        st.success("📁 Test data uploaded — models evaluated successfully!")
+    else:
+        st.warning("⬆️ Please upload a CSV dataset (with 'target' column) in the sidebar to view model scores.")
 
     # ─── Tab layout ───────────────────────────────────────────────────────────
     tab1, tab2, tab3 = st.tabs(
@@ -265,27 +267,24 @@ def main():
     with tab1:
         st.header(f"Model: {selected_model}")
 
-        if results:
-            # Using uploaded data results
+        # Metric cards — show "--" until data is uploaded
+        col1, col2, col3, col4, col5, col6 = st.columns(6)
+        if data_loaded and results:
             res = results[selected_model]
             metrics = res["metrics"]
-            cm = res["cm"]
-            report = res["report"]
+            col1.metric("Accuracy", f"{metrics['Accuracy']:.4f}")
+            col2.metric("AUC Score", f"{metrics['AUC']:.4f}")
+            col3.metric("Precision", f"{metrics['Precision']:.4f}")
+            col4.metric("Recall", f"{metrics['Recall']:.4f}")
+            col5.metric("F1 Score", f"{metrics['F1']:.4f}")
+            col6.metric("MCC", f"{metrics['MCC']:.4f}")
         else:
-            # Using pre-computed metrics
-            all_metrics, all_cms, all_reports = load_saved_metrics()
-            metrics = all_metrics[selected_model]
-            cm = np.array(all_cms[selected_model])
-            report = all_reports[selected_model]
-
-        # Metric cards
-        col1, col2, col3, col4, col5, col6 = st.columns(6)
-        col1.metric("Accuracy", f"{metrics['Accuracy']:.4f}")
-        col2.metric("AUC Score", f"{metrics['AUC']:.4f}")
-        col3.metric("Precision", f"{metrics['Precision']:.4f}")
-        col4.metric("Recall", f"{metrics['Recall']:.4f}")
-        col5.metric("F1 Score", f"{metrics['F1']:.4f}")
-        col6.metric("MCC", f"{metrics['MCC']:.4f}")
+            col1.metric("Accuracy", "--")
+            col2.metric("AUC Score", "--")
+            col3.metric("Precision", "--")
+            col4.metric("Recall", "--")
+            col5.metric("F1 Score", "--")
+            col6.metric("MCC", "--")
 
         st.divider()
 
@@ -294,51 +293,57 @@ def main():
 
         with left_col:
             st.subheader("Confusion Matrix")
-            fig = plot_confusion_matrix(cm, selected_model)
-            st.pyplot(fig)
+            if data_loaded and results:
+                cm = results[selected_model]["cm"]
+                fig = plot_confusion_matrix(cm, selected_model)
+                st.pyplot(fig)
+            else:
+                st.info("Upload test data to view the confusion matrix.")
 
         with right_col:
             st.subheader("Classification Report")
-            # Convert report dict to a nice dataframe
-            report_df = pd.DataFrame(report).transpose()
-            # Keep only meaningful rows
-            display_rows = [k for k in report_df.index if k not in ("accuracy",)]
-            report_display = report_df.loc[display_rows]
-            report_display = report_display.round(4)
-            st.dataframe(report_display, use_container_width=True)
+            if data_loaded and results:
+                report = results[selected_model]["report"]
+                report_df = pd.DataFrame(report).transpose()
+                display_rows = [k for k in report_df.index if k not in ("accuracy",)]
+                report_display = report_df.loc[display_rows]
+                report_display = report_display.round(4)
+                st.dataframe(report_display, use_container_width=True)
+            else:
+                st.info("Upload test data to view the classification report.")
 
     # ─────────── TAB 2: Detailed Analysis ────────────────────────────────────
     with tab2:
         st.header("Detailed Model Analysis")
 
-        if results:
+        if data_loaded and results:
             all_metrics_dict = {name: r["metrics"] for name, r in results.items()}
+
+            # Bar charts for each metric
+            metrics_names = ["Accuracy", "AUC", "Precision", "Recall", "F1", "MCC"]
+            models_list = list(all_metrics_dict.keys())
+
+            for i in range(0, len(metrics_names), 2):
+                cols = st.columns(2)
+                for j in range(2):
+                    if i + j < len(metrics_names):
+                        metric_name = metrics_names[i + j]
+                        with cols[j]:
+                            values = [all_metrics_dict[m][metric_name] for m in models_list]
+                            fig, ax = plt.subplots(figsize=(6, 4))
+                            bars = ax.barh(models_list, values, color=sns.color_palette("viridis", len(models_list)))
+                            ax.set_xlim(0, 1.05)
+                            ax.set_title(f"{metric_name} Comparison", fontsize=14, fontweight="bold")
+                            ax.set_xlabel(metric_name)
+                            for bar, val in zip(bars, values):
+                                ax.text(val + 0.01, bar.get_y() + bar.get_height() / 2, f"{val:.4f}",
+                                        va="center", fontsize=9)
+                            plt.tight_layout()
+                            st.pyplot(fig)
         else:
-            all_metrics_dict, _, _ = load_saved_metrics()
+            st.info("Upload test data to view detailed metric comparisons and bar charts.")
 
-        # Bar charts for each metric
-        metrics_names = ["Accuracy", "AUC", "Precision", "Recall", "F1", "MCC"]
-        models_list = list(all_metrics_dict.keys())
-
-        for i in range(0, len(metrics_names), 2):
-            cols = st.columns(2)
-            for j in range(2):
-                if i + j < len(metrics_names):
-                    metric_name = metrics_names[i + j]
-                    with cols[j]:
-                        values = [all_metrics_dict[m][metric_name] for m in models_list]
-                        fig, ax = plt.subplots(figsize=(6, 4))
-                        bars = ax.barh(models_list, values, color=sns.color_palette("viridis", len(models_list)))
-                        ax.set_xlim(0, 1.05)
-                        ax.set_title(f"{metric_name} Comparison", fontsize=14, fontweight="bold")
-                        ax.set_xlabel(metric_name)
-                        for bar, val in zip(bars, values):
-                            ax.text(val + 0.01, bar.get_y() + bar.get_height() / 2, f"{val:.4f}",
-                                    va="center", fontsize=9)
-                        plt.tight_layout()
-                        st.pyplot(fig)
-
-        # Observations
+        # Observations (always visible)
         st.divider()
         st.header("📝 Model Observations")
 
@@ -384,50 +389,64 @@ def main():
 
         for model_name, obs in observations.items():
             with st.expander(f"🔹 {model_name}", expanded=False):
-                if results:
+                if data_loaded and results:
                     m = results[model_name]["metrics"]
+                    st.markdown(f"**Performance Summary**: Accuracy={m['Accuracy']:.4f}, F1={m['F1']:.4f}, MCC={m['MCC']:.4f}")
                 else:
-                    m = all_metrics_dict[model_name]
-                st.markdown(f"**Performance Summary**: Accuracy={m['Accuracy']:.4f}, F1={m['F1']:.4f}, MCC={m['MCC']:.4f}")
+                    st.markdown("**Performance Summary**: Accuracy=--, F1=--, MCC=--")
                 st.markdown(obs)
 
     # ─────────── TAB 3: Comparison Table ─────────────────────────────────────
     with tab3:
         st.header("📊 Model Comparison Table")
 
-        if results:
+        if data_loaded and results:
             all_metrics_dict_tab3 = {name: r["metrics"] for name, r in results.items()}
+
+            comparison_data = []
+            for model_name, m in all_metrics_dict_tab3.items():
+                comparison_data.append({
+                    "ML Model": model_name,
+                    "Accuracy": m["Accuracy"],
+                    "AUC": m["AUC"],
+                    "Precision": m["Precision"],
+                    "Recall": m["Recall"],
+                    "F1": m["F1"],
+                    "MCC": m["MCC"],
+                })
+
+            comparison_df = pd.DataFrame(comparison_data)
+            comparison_df = comparison_df.set_index("ML Model")
+
+            # Style the table - highlight best values
+            st.dataframe(
+                comparison_df.style.highlight_max(axis=0, color="#90EE90").format("{:.4f}"),
+                use_container_width=True,
+            )
+
+            # Best model summary
+            st.divider()
+            st.subheader("🏆 Best Model per Metric")
+            for metric in ["Accuracy", "AUC", "Precision", "Recall", "F1", "MCC"]:
+                best_model = comparison_df[metric].idxmax()
+                best_val = comparison_df[metric].max()
+                st.markdown(f"- **{metric}**: {best_model} ({best_val:.4f})")
         else:
-            all_metrics_dict_tab3, _, _ = load_saved_metrics()
-
-        comparison_data = []
-        for model_name, m in all_metrics_dict_tab3.items():
-            comparison_data.append({
-                "ML Model": model_name,
-                "Accuracy": m["Accuracy"],
-                "AUC": m["AUC"],
-                "Precision": m["Precision"],
-                "Recall": m["Recall"],
-                "F1": m["F1"],
-                "MCC": m["MCC"],
-            })
-
-        comparison_df = pd.DataFrame(comparison_data)
-        comparison_df = comparison_df.set_index("ML Model")
-
-        # Style the table - highlight best values
-        st.dataframe(
-            comparison_df.style.highlight_max(axis=0, color="#90EE90").format("{:.4f}"),
-            use_container_width=True,
-        )
-
-        # Best model summary
-        st.divider()
-        st.subheader("🏆 Best Model per Metric")
-        for metric in ["Accuracy", "AUC", "Precision", "Recall", "F1", "MCC"]:
-            best_model = comparison_df[metric].idxmax()
-            best_val = comparison_df[metric].max()
-            st.markdown(f"- **{metric}**: {best_model} ({best_val:.4f})")
+            # Show placeholder table with "--"
+            placeholder_data = []
+            for model_name in MODEL_FILES.keys():
+                placeholder_data.append({
+                    "ML Model": model_name,
+                    "Accuracy": "--",
+                    "AUC": "--",
+                    "Precision": "--",
+                    "Recall": "--",
+                    "F1": "--",
+                    "MCC": "--",
+                })
+            placeholder_df = pd.DataFrame(placeholder_data).set_index("ML Model")
+            st.dataframe(placeholder_df, use_container_width=True)
+            st.info("Upload test data to populate the comparison table.")
 
     # ─── Footer ───────────────────────────────────────────────────────────────
     st.divider()
