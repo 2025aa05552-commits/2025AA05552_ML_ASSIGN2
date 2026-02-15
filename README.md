@@ -44,23 +44,24 @@ All 6 models were trained with an 80/20 stratified train-test split and Standard
 
 | ML Model Name | Accuracy | AUC | Precision | Recall | F1 | MCC |
 |---------------|----------|-----|-----------|--------|-----|-----|
-| Logistic Regression | 0.8098 | 0.9298 | 0.7619 | 0.9143 | 0.8312 | 0.6309 |
-| Decision Tree | 0.9854 | 0.9857 | 1.0000 | 0.9714 | 0.9855 | 0.9712 |
-| kNN | 0.8634 | 0.9629 | 0.8738 | 0.8571 | 0.8654 | 0.7269 |
-| Naive Bayes | 0.8293 | 0.9043 | 0.8070 | 0.8762 | 0.8402 | 0.6602 |
-| Random Forest (Ensemble) | 1.0000 | 1.0000 | 1.0000 | 1.0000 | 1.0000 | 1.0000 |
-| XGBoost (Ensemble) | 1.0000 | 1.0000 | 1.0000 | 1.0000 | 1.0000 | 1.0000 |
+| Logistic Regression | 0.7805 | 0.8738 | 0.8000 | 0.7619 | 0.7805 | 0.5619 |
+| Decision Tree | 0.7805 | 0.7798 | 0.7727 | 0.8095 | 0.7907 | 0.5609 |
+| kNN | 0.7561 | 0.8810 | 0.7391 | 0.8095 | 0.7727 | 0.5132 |
+| Naive Bayes | 0.7805 | 0.8905 | 0.7727 | 0.8095 | 0.7907 | 0.5609 |
+| Random Forest (Ensemble) | 0.8049 | 0.9024 | 0.8095 | 0.8095 | 0.8095 | 0.6095 |
+| XGBoost (Ensemble) | 0.7805 | 0.8786 | 0.7727 | 0.8095 | 0.7907 | 0.5609 |
+
 
 ### Model Observations
 
 | ML Model Name | Observation about model performance |
 |---------------|-------------------------------------|
-| Logistic Regression | Logistic Regression provides a solid baseline with good interpretability. It achieves reasonable accuracy (0.8098) and high recall (0.9143), meaning it correctly identifies most patients with heart disease. However, its precision is comparatively lower (0.7619), leading to more false positives. The high AUC (0.9298) indicates good overall separability between classes. It is a reliable linear model suitable for understanding feature contributions. |
-| Decision Tree | Decision Tree achieves excellent accuracy (0.9854) with perfect precision (1.0) and near-perfect recall (0.9714). It effectively captures non-linear decision boundaries inherent in clinical data. The strong MCC (0.9712) indicates a well-balanced classifier. However, single decision trees can be prone to overfitting, especially without pruning or depth constraints. |
-| kNN | K-Nearest Neighbors shows moderate performance with a balance between precision (0.8738) and recall (0.8571). The model benefits considerably from feature scaling (StandardScaler). Its AUC (0.9629) is strong, indicating good probabilistic ranking. Performance could be further improved with hyperparameter tuning of k and distance metrics. |
-| Naive Bayes | Gaussian Naive Bayes offers decent performance (accuracy 0.8293) despite its strong feature independence assumption. It has high recall (0.8762) but somewhat lower precision (0.8070), suggesting it tends to classify more instances as positive. It is computationally efficient and works well as a baseline probabilistic classifier. The AUC (0.9043) shows reasonable class separation ability. |
-| Random Forest (Ensemble) | Random Forest, a bagging-based ensemble of decision trees, achieves perfect performance across all metrics. By aggregating predictions from 200 trees, it effectively reduces variance and overfitting risk compared to a single decision tree. This demonstrates the power of ensemble bagging methods on structured/tabular clinical data. The perfect scores indicate strong generalisation on this dataset's test split. |
-| XGBoost (Ensemble) | XGBoost, a gradient-boosted ensemble model, also delivers perfect performance across all metrics. It excels in capturing complex feature interactions through sequential boosting, where each new tree corrects errors from previous ones. Its built-in regularisation parameters help prevent overfitting. XGBoost consistently ranks as a top performer for tabular data classification tasks. |
+| Logistic Regression | Logistic Regression provides a solid baseline with good interpretability. It achieves an accuracy of 0.7805 and a recall of 0.7619, correctly identifying most patients with heart disease. Its precision (0.8000) is the highest among individual (non-ensemble) models, indicating fewer false positives. The AUC of 0.8738 shows good overall class separability. As a linear model, it is well-suited for understanding feature contributions to the prediction. |
+| Decision Tree | Decision Tree matches the same accuracy (0.7805) as Logistic Regression but with a higher recall (0.8095), catching more true positive cases. However, its AUC (0.7798) is the lowest among all models, suggesting weaker probabilistic ranking and potential overfitting to specific decision boundaries. The MCC of 0.5609 indicates moderate correlation between predicted and actual classes. Pruning or depth constraints could help improve its generalisation. |
+| kNN | K-Nearest Neighbors has the lowest accuracy (0.7561) and precision (0.7391) among all models, resulting in the most false positives. However, its AUC (0.8810) is comparatively strong, indicating good probabilistic ranking despite the lower hard-classification performance. The MCC of 0.5132 is the weakest across all models. Performance could be improved with hyperparameter tuning of k values and distance metrics, and it benefits significantly from the StandardScaler feature scaling applied. |
+| Naive Bayes | Gaussian Naive Bayes achieves an accuracy of 0.7805 with a recall of 0.8095 and precision of 0.7727, despite its strong feature independence assumption. Notably, its AUC (0.8905) is the second-highest overall, demonstrating strong probabilistic class separation ability. It is computationally efficient and serves as an effective baseline probabilistic classifier. The MCC of 0.5609 shows moderate predictive correlation. |
+| Random Forest (Ensemble) | Random Forest delivers the best overall performance among all 6 models, achieving the highest accuracy (0.8049), precision (0.8095), AUC (0.9024), and MCC (0.6095). By aggregating predictions from 200 decision trees via bagging, it reduces variance and overfitting compared to a single Decision Tree. The balanced precision-recall (both 0.8095) and superior F1 score (0.8095) confirm it as the most reliable model on this dataset. |
+| XGBoost (Ensemble) | XGBoost achieves an accuracy of 0.7805 with recall of 0.8095 and AUC of 0.8786, performing comparably to Decision Tree and Naive Bayes on hard classification metrics. While it did not outperform Random Forest on this dataset, its gradient-boosting approach with built-in regularisation still provides competitive results. The MCC of 0.5609 indicates moderate predictive correlation. With further hyperparameter tuning (learning rate, depth, number of estimators), its performance could potentially improve. |
 
 ## Project Structure
 
